@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+// @ts-ignore
 import { buildPoseidon } from 'circomlibjs';
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '12345678901234567890123456789012'; // 32 bytes
