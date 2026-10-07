@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ZK-ID: Privacy-Preserving Digital Identity & Credential Verification
 
-## Getting Started
+ZK-ID is a complete production-quality platform for issuing, holding, and verifying digital credentials using Zero-Knowledge Proofs (ZKPs). 
 
-First, run the development server:
+> "Prove the claim. Don't reveal the data."
 
+## Problem
+Traditional identity verification exposes too much information. When you show your ID to prove you are over 18, you also reveal your exact date of birth, name, address, and ID number.
+
+## Solution
+ZK-ID lets users prove claims without revealing underlying data. Users hold their credentials privately, generate a Zero-Knowledge Proof (ZKP) to answer a specific claim (e.g., "Age >= 18" = TRUE), and present the proof to the verifier. The verifier can cryptographically verify the proof against the issuer's public commitment on the blockchain without ever seeing the private data.
+
+## Architecture
+1. **Issuer**: Approves and issues a credential (e.g., University, DMV). Signs the data and registers a Poseidon Hash commitment on-chain.
+2. **Holder Wallet**: Stores the encrypted credential data locally. Generates a ZK Proof when requested.
+3. **Verifier**: Requests a specific claim. Receives the ZK Proof and validates it either on-chain via smart contracts or off-chain using the verifier key.
+4. **Blockchain Registry**: Smart contracts store credential validity and revocation status. No personal data is stored on-chain.
+
+## Technology Stack
+- **Frontend**: Next.js 15, React, Tailwind CSS, shadcn/ui, Framer Motion
+- **Backend**: Next.js API Routes, Prisma ORM, SQLite (configurable to PostgreSQL)
+- **Zero-Knowledge**: Circom, snarkjs, Groth16
+- **Smart Contracts**: Solidity, Hardhat, OpenZeppelin
+- **Web3**: wagmi, viem, RainbowKit
+
+## Setup Instructions
+
+### 1. Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Environment Variables
+Copy `.env.example` to `.env` and fill in the required values (or use the defaults for local testing).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Database Setup
+```bash
+npx prisma generate
+npx prisma db push
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Smart Contract Deployment (Local Testnet)
+```bash
+npx hardhat node
+# In a new terminal:
+npx hardhat run scripts/deploy.ts --network localhost
+```
+Update your `.env` with the deployed contract addresses.
 
-## Learn More
+### 5. ZK Circuit Setup
+```bash
+node scripts/build-zk.js
+```
+*Note: Requires `circom` compiler to be installed on your system if you are compiling circuits from scratch.*
 
-To learn more about Next.js, take a look at the following resources:
+### 6. Run the Application
+```bash
+npm run dev
+```
+Navigate to `http://localhost:3000`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Testing
+```bash
+# Test smart contracts
+npx hardhat test
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Test frontend/backend (if configured)
+npm run test
+```
 
-## Deploy on Vercel
+## Security & Privacy Model
+- **No Private Data On-Chain**: Only Poseidon hashes (commitments) are stored on the blockchain.
+- **Revocation**: Handled via `RevocationRegistry` smart contract. A revoked credential will fail any subsequent verification.
+- **Threat Model**: Assumes the issuer is trusted to issue valid data. Assumes the cryptography (Groth16/Poseidon) is secure.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Documentation
+- [Architecture](docs/architecture.md)
+- [Security](docs/security.md)
+- [Privacy](docs/privacy.md)
+- [Circuits](docs/circuits.md)
