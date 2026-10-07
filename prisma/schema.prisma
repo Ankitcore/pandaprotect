@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // For hackathon demo, using sqlite. Can swap to postgres easily.
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String       @id @default(uuid())
+  walletAddress String       @unique
+  role          String       @default("HOLDER") // HOLDER, ISSUER, VERIFIER
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  issuerProfile IssuerProfile?
+  credentials   Credential[]
+}
+
+model IssuerProfile {
+  id           String       @id @default(uuid())
+  userId       String       @unique
+  user         User         @relation(fields: [userId], references: [id])
+  name         String
+  description  String?
+  logoUrl      String?
+  website      String?
+  isApproved   Boolean      @default(false)
+  issuedCreds  Credential[] @relation("IssuerCredentials")
+}
+
+model Credential {
+  id               String   @id @default(uuid())
+  credentialHash   String   @unique
+  holderWallet     String
+  holder           User     @relation(fields: [holderWallet], references: [walletAddress])
+  issuerId         String
+  issuer           IssuerProfile @relation("IssuerCredentials", fields: [issuerId], references: [id])
+  credentialType   String   // AGE, DEGREE, DRIVING_LICENCE
+  credentialData   String   // Encrypted payload of private data for the holder
+  credentialSecret String   // Random salt used in Poseidon hash (encrypted)
+  issuedAt         DateTime @default(now())
+  expiresAt        DateTime?
+  status           String   @default("ACTIVE") // ACTIVE, REVOKED
+  blockchainTxHash String?
+  schemaVersion    String   @default("1.0")
+  
+  verifications    VerificationRequest[]
+}
+
+model VerificationRequest {
+  id               String   @id @default(uuid())
+  verifierAddress  String
+  requiredClaim    String   // e.g. "Age >= 18"
+  status           String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  credentialId     String?
+  credential       Credential? @relation(fields: [credentialId], references: [id])
+  proofData        String?  // The ZK proof JSON submitted
+  verifiedAt       DateTime?
+  createdAt        DateTime @default(now())
+}
